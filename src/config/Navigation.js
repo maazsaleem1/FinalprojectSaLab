@@ -7,6 +7,8 @@ import TodoApp from '../Components/TodoApp';
 // import ProfilePage from '../Components/'; // <-- create this component
 import MainLayout from '../Components/MainLayout';
 import ProfilePage from '../Components/profilePage';
+import EditProfilePage from '../Components/EditProfile';
+import NotFoundPage from '../Components/NotFoundPage';
 
 const Navigation = () => {
   return (
@@ -15,11 +17,16 @@ const Navigation = () => {
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/create-profile" element={<CreateProfilePage />} />
+      <Route path="*" element={<NotFoundPage />} />
+
+
 
       {/* Protected/Main Routes with Drawer */}
       <Route path="/" element={<MainLayout />}>
         <Route path="home" element={<TodoApp />} />
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="editprofile" element={<EditProfilePage />} />
+
       </Route>
     </Routes>
   );

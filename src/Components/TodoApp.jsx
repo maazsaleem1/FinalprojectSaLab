@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   TextField,
   Button,
@@ -17,101 +17,186 @@ import {
   DialogContent,
   DialogTitle,
   Select,
-  MenuItem as MuiMenuItem,
+  MenuItem,
   FormControl,
   InputLabel,
-  FormHelperText,
+  CircularProgress,
 } from "@mui/material";
 import { ToastContainer, toast } from "react-toastify";
 import { Delete, Edit, Add, Search } from "@mui/icons-material";
+import ApiServices from "../services/ApiServices.jsx";
 
 const TodoApp = () => {
   const [tasks, setTasks] = useState([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
   const [taskDetails, setTaskDetails] = useState({
     title: "",
     description: "",
     category: "",
     status: "",
-    Date: "",
+    dueDate: "",
   });
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editId, setEditId] = useState(null);
 
-  const handleAdd = () => {
-    if (taskDetails.title.trim()) {
-      setTasks([
-        ...tasks,
-        { id: Date.now(), ...taskDetails, completed: false },
-      ]);
-      toast("Add New Todo", {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: false,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "light",
-      });
-      resetDialog();
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const fetchTasks = async () => {
+    try {
+      const response = await ApiServices.getAllTodo();
+      setTasks(response.data);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
     }
   };
 
-  const handleEdit = (id) => {
-    const taskToEdit = tasks.find((task) => task.id === id);
-    setTaskDetails(taskToEdit);
-    setEditId(id);
-    setDialogOpen(true);
-  };
-
-  const handleSaveEdit = () => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === editId ? { ...task, ...taskDetails } : task
-      )
-    );
-    resetDialog();
-  };
-
-  const handleDelete = (id) => {
-    setTasks(tasks.filter((task) => task.id !== id));
-  };
-
-  const resetDialog = () => {
-    setDialogOpen(false);
-    setEditId(null);
+  const resetTaskDetails = () => {
     setTaskDetails({
       title: "",
       description: "",
       category: "",
       status: "",
-      Date: "",
+      dueDate: "",
     });
   };
-
-  const filteredTasks = tasks.filter((task) =>
-    task.title.toLowerCase().includes(search.toLowerCase())
-  );
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setTaskDetails((prevDetails) => ({ ...prevDetails, [name]: value }));
   };
 
+  const handleAdd = async () => {
+    if (!taskDetails.title.trim()) return;
+    try {
+      setLoading(true);
+      const response = await ApiServices.addTodo(
+        taskDetails.title,
+        taskDetails.description,
+        taskDetails.category,
+        taskDetails.status,
+        taskDetails.dueDate
+      );
+      setTasks([...tasks, response.data]);
+      toast.success("Task added successfully");
+      setAddDialogOpen(false);
+      resetTaskDetails();
+    } catch (error) {
+      toast.error("Failed to add task");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = (id) => {
+    console.log(id)
+    const task = tasks.find((t) => t._id === id);
+    setTaskDetails(task);
+    setEditId(id);
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      setLoading(true);
+      const response = await ApiServices.editTodo(editId, taskDetails);
+      const updatedTask = response.data;
+      setTasks(tasks.map((task) => (task.id === editId ? updatedTask : task)));
+      toast.success("Task updated successfully");
+      setEditDialogOpen(false);
+      resetTaskDetails();
+      fetchTasks();
+    } catch (error) {
+      toast.error("Failed to update task");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await ApiServices.deleteTodo(id);
+      setTasks(tasks.filter((task) => task.id !== id));
+      toast.success("Task deleted successfully");
+      fetchTasks();
+    } catch (error) {
+      toast.error("Failed to delete task");
+    }
+  };
+
+  const filteredTasks = tasks.filter((task) =>
+    task.title.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const renderTaskDialogContent = () => (
+    <>
+      <TextField
+        autoFocus
+        margin="dense"
+        label="Title"
+        type="text"
+        fullWidth
+        name="title"
+        value={taskDetails.title}
+        onChange={handleInputChange}
+      />
+      <TextField
+        margin="dense"
+        label="Description"
+        type="text"
+        fullWidth
+        name="description"
+        value={taskDetails.description}
+        onChange={handleInputChange}
+      />
+      <FormControl fullWidth margin="dense">
+        <InputLabel>Category</InputLabel>
+        <Select name="category" value={taskDetails.category} onChange={handleInputChange}>
+          <MenuItem value="Work">Work</MenuItem>
+          <MenuItem value="Personal">Personal</MenuItem>
+          <MenuItem value="Study">Study</MenuItem>
+        </Select>
+      </FormControl>
+      <FormControl fullWidth margin="dense">
+        <InputLabel>Status</InputLabel>
+        <Select name="status" value={taskDetails.status} onChange={handleInputChange}>
+          <MenuItem value="pending">Pending</MenuItem>
+          <MenuItem value="in-progress">In Progress</MenuItem>
+          <MenuItem value="completed">Completed</MenuItem>
+        </Select>
+      </FormControl>
+      <TextField
+        margin="dense"
+        label="Due Date"
+        type="date"
+        fullWidth
+        name="dueDate"
+        value={taskDetails.dueDate}
+        onChange={handleInputChange}
+        InputLabelProps={{ shrink: true }}
+      />
+    </>
+  );
+
   return (
-    <Box>
+    <Box p={3}>
+      <ToastContainer />
       <Typography variant="h4" align="center" gutterBottom>
         📝 To-Do List
       </Typography>
-      <ToastContainer />
 
       <Button
         variant="contained"
         color="primary"
-        onClick={() => setDialogOpen(true)}
+        onClick={() => {
+          resetTaskDetails();
+          setAddDialogOpen(true);
+        }}
         startIcon={<Add />}
-        sx={{ marginBottom: 2 }}
+        sx={{ mb: 2 }}
       >
         Add Task
       </Button>
@@ -132,85 +217,27 @@ const TodoApp = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>
-                <b
-                  style={{
-                    fontFamily: "monospace",
-                    fontWeight: "bold",
-                    fontSize: 25,
-                  }}
-                >
-                  Title
-                </b>{" "}
-              </TableCell>
-              <TableCell
-                style={{
-                  fontFamily: "monospace",
-                  fontWeight: "bold",
-                  fontSize: 25,
-                }}
-              >
-                Description
-              </TableCell>
-              <TableCell
-                style={{
-                  fontFamily: "monospace",
-                  fontWeight: "bold",
-                  fontSize: 25,
-                }}
-              >
-                Category
-              </TableCell>
-              <TableCell
-                style={{
-                  fontFamily: "monospace",
-                  fontWeight: "bold",
-                  fontSize: 25,
-                }}
-              >
-                Status
-              </TableCell>
-              <TableCell
-                style={{
-                  fontFamily: "monospace",
-                  fontWeight: "bold",
-                  fontSize: 25,
-                }}
-              >
-                {" "}
-                Date
-              </TableCell>
-              <TableCell
-                style={{
-                  fontFamily: "monospace",
-                  fontWeight: "bold",
-                  fontSize: 25,
-                }}
-              >
-                Actions
-              </TableCell>
+              {["Title", "Description", "Category", "Status", "Date", "Actions"].map((text, i) => (
+                <TableCell key={i} style={{ fontWeight: "bold", fontSize: 18, fontFamily: "monospace" }}>
+                  {text}
+                </TableCell>
+              ))}
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredTasks.length > 0 ? (
+            {filteredTasks.length ? (
               filteredTasks.map((task) => (
                 <TableRow key={task.id}>
                   <TableCell>{task.title}</TableCell>
                   <TableCell>{task.description}</TableCell>
                   <TableCell>{task.category}</TableCell>
                   <TableCell>{task.status}</TableCell>
-                  <TableCell>{task.Date}</TableCell>
+                  <TableCell>{task.dueDate?.split("T")[0]}</TableCell>
                   <TableCell>
-                    <IconButton
-                      color="primary"
-                      onClick={() => handleEdit(task.id)}
-                    >
+                    <IconButton color="primary" onClick={() => handleEdit(task._id)}>
                       <Edit />
                     </IconButton>
-                    <IconButton
-                      color="error"
-                      onClick={() => handleDelete(task.id)}
-                    >
+                    <IconButton color="error" onClick={() => handleDelete(task._id)}>
                       <Delete />
                     </IconButton>
                   </TableCell>
@@ -227,73 +254,38 @@ const TodoApp = () => {
         </Table>
       </TableContainer>
 
-      <Dialog open={dialogOpen} onClose={resetDialog}>
-        <DialogTitle>{editId ? "Edit Task" : "Add New Task"}</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Title"
-            type="text"
-            fullWidth
-            name="title"
-            value={taskDetails.title}
-            onChange={handleInputChange}
-          />
-          <TextField
-            margin="dense"
-            label="Description"
-            type="text"
-            fullWidth
-            name="description"
-            value={taskDetails.description}
-            onChange={handleInputChange}
-          />
-          <FormControl fullWidth margin="dense">
-            <InputLabel>Category</InputLabel>
-            <Select
-              name="category"
-              value={taskDetails.category}
-              onChange={handleInputChange}
-            >
-              <MuiMenuItem value="Work">Work</MuiMenuItem>
-              <MuiMenuItem value="Personal">Personal</MuiMenuItem>
-              <MuiMenuItem value="Study">Study</MuiMenuItem>
-            </Select>
-            <FormHelperText>Choose the task category</FormHelperText>
-          </FormControl>
-          <FormControl fullWidth margin="dense">
-            <InputLabel>Status</InputLabel>
-            <Select
-              name="status"
-              value={taskDetails.status}
-              onChange={handleInputChange}
-            >
-              <MuiMenuItem value="Pending">Pending</MuiMenuItem>
-              <MuiMenuItem value="In Progress">In Progress</MuiMenuItem>
-              <MuiMenuItem value="Completed">Completed</MuiMenuItem>
-            </Select>
-            <FormHelperText>Choose the task status</FormHelperText>
-          </FormControl>
-          <TextField
-            margin="dense"
-            label=" Date"
-            type="date"
-            fullWidth
-            name="Date"
-            value={taskDetails.Date}
-            onChange={handleInputChange}
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
-        </DialogContent>
+      {/* Add Task Dialog */}
+      <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)}>
+        <DialogTitle>Add New Task</DialogTitle>
+        <DialogContent>{renderTaskDialogContent()}</DialogContent>
         <DialogActions>
-          <Button onClick={resetDialog} color="secondary">
+          <Button onClick={() => setAddDialogOpen(false)} color="secondary">
             Cancel
           </Button>
-          <Button onClick={editId ? handleSaveEdit : handleAdd} color="primary">
-            {editId ? "Save Changes" : "Save Task"}
+          <Button
+            onClick={handleAdd}
+            color="primary"
+            startIcon={loading && <CircularProgress size={20} />}
+          >
+            {loading ? "Adding..." : "Add Task"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Task Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
+        <DialogTitle>Edit Task</DialogTitle>
+        <DialogContent>{renderTaskDialogContent()}</DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)} color="secondary">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSaveEdit}
+            color="primary"
+            startIcon={loading && <CircularProgress size={20} />}
+          >
+            {loading ? "Saving..." : "Save Changes"}
           </Button>
         </DialogActions>
       </Dialog>

@@ -29,19 +29,21 @@ const MainLayout = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // Check if screen is small (mobile)
 
+  const [name, setname] = useState(localStorage.getItem("username"));
+
   const handleAvatarClick = (event) => setAnchorEl(event.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
 
   const handleLogout = () => {
     console.log('Logging out...');
     toast.success('Successfully logged out!', {
- 
-  autoClose: 3000, // Auto close in 3 seconds
-  hideProgressBar: false, // Show progress bar
-  closeOnClick: true, // Allow closing the toast when clicked
-  pauseOnHover: true, // Pause the toast when hovered
-  draggable: true, // Allow dragging the toast
-});
+
+      autoClose: 3000, // Auto close in 3 seconds
+      hideProgressBar: false, // Show progress bar
+      closeOnClick: true, // Allow closing the toast when clicked
+      pauseOnHover: true, // Pause the toast when hovered
+      draggable: true, // Allow dragging the toast
+    });
     setAnchorEl(null);
     navigate('/');
   };
@@ -51,6 +53,9 @@ const MainLayout = () => {
   const drawerItems = [
     { label: 'Todo', path: '/home' },
     { label: 'Profile', path: '/profile' },
+    { label: 'Edit Profile', path: '/editprofile' },
+    { label: 'Logout', path: '/' },
+
   ];
 
   const drawer = (
@@ -63,7 +68,7 @@ const MainLayout = () => {
       }}
     >
       <Typography variant="h6" sx={{ p: 2 }}>
-        My App
+        {name}
       </Typography>
       <List>
         {drawerItems.map((item) => {
@@ -101,7 +106,7 @@ const MainLayout = () => {
   return (
     <Box sx={{ display: 'flex' }}>
       {/* Drawer - Temporary for mobile, permanent for large screens */}
-      <ToastContainer/>
+      <ToastContainer />
       <Drawer
         variant={isMobile ? 'temporary' : 'permanent'}
         open={isMobile ? mobileOpen : true} // Only toggle on mobile

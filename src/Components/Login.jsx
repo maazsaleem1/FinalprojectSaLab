@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Container,
   TextField,
@@ -7,10 +7,14 @@ import {
   Box,
   Paper,
   Grid,
+  CircularProgress,
 } from "@mui/material";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from 'react-router-dom';
+import ApiServices from "../services/ApiServices";
+import { ToastContainer, toast } from "react-toastify";
+
 
 // Background image
 const backgroundImage =
@@ -26,9 +30,56 @@ const validationSchema = Yup.object({
 });
 
 const LoginPage = () => {
-  const handleSubmit = (values) => {
-    console.log("Logging in with:", values);
-    // Handle login logic
+  const navigate = useNavigate();
+
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/home");
+
+    }
+  })
+
+
+
+  const nav = useNavigate();
+
+
+  const handleSubmit = async (values, { resetForm }) => {
+    try {
+      setLoading(true);
+      const data = await ApiServices.login(values.email, values.password);
+      console.log('Signup success:', data);
+      if (data.status === 200) {
+        toast.success("Account Login successfully!");
+        localStorage.setItem("token", data.data.token);
+        localStorage.setItem("username", data.data.user.fullName);
+        localStorage.setItem("user", JSON.stringify(data.data.user));
+        nav("/home");
+        resetForm();
+
+      }
+      else {
+        if (typeof data.message === 'string') {
+          toast.error(data.message);
+        } else if (Array.isArray(data.message) && data.message[0]?.message) {
+          toast.error(data.message[0].message);
+        } else {
+          toast.error("Something went wrong");
+        }
+        // navigate("/create-profile");
+      }
+
+    } catch (error) {
+      console.log('Error occurred during signup.');
+    }
+    finally {
+      setLoading(false);
+    }
+
+
   };
 
   return (
@@ -67,6 +118,7 @@ const LoginPage = () => {
           <Typography variant="h4" align="center" gutterBottom>
             Welcome Back
           </Typography>
+          <ToastContainer />
           <Box textAlign="center" mb={2}>
             <img
               src="https://lh6.ggpht.com/aiY9J8YK8Lzr7hMC7nZWlZGiBn8TF_PY7NVNy5U1i5g4zG8yEPzEZTJK2WwbWJUogg"
@@ -115,15 +167,13 @@ const LoginPage = () => {
                   color="primary"
                   fullWidth
                   type="submit"
-                  sx={{
-                    paddingY: 1.5,
-                    fontWeight: "bold",
-                    fontSize: "1rem",
-                    textTransform: "none",
-                  }}
+                  disabled={loading}
+
+                  startIcon={loading && <CircularProgress size={20} color="inherit" />}
                 >
-                  Log In
+                  {loading ? 'Loging ...' : 'Login'}
                 </Button>
+
               </Form>
             )}
           </Formik>

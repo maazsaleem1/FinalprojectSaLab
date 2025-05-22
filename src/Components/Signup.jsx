@@ -1,11 +1,14 @@
 // SignupPage.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Container, TextField, Button, Typography, Box, Paper, Grid
 } from '@mui/material';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
-import { Link,useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import ApiServices from '../services/ApiServices.jsx';
+import { ToastContainer, toast } from "react-toastify";
+import CircularProgress from '@mui/material/CircularProgress';
 
 // Validation Schema
 const validationSchema = Yup.object({
@@ -17,11 +20,44 @@ const validationSchema = Yup.object({
 const backgroundImage = 'https://t4.ftcdn.net/jpg/04/72/60/39/360_F_472603936_gtZ5ULKjzrVqN5nvVl9tiFJtak2ikbnb.jpg';
 
 const SignupPage = () => {
-      const navigate = useNavigate();
-  const handleSubmit = (values, { resetForm }) => {
-    console.log('Signup form values:', values);
-    navigate("/create-profile")
-    resetForm();
+  const [loading, setLoading] = useState(false);
+
+
+  const navigate = useNavigate();
+
+  const handleSubmit = async (values, { resetForm }) => {
+    try {
+      setLoading(true);
+      const data = await ApiServices.signup(values.email, values.password, values.name);
+      console.log('Signup success:', data);
+      if (data.status === 200) {
+        toast.success("Account created successfully!");
+        localStorage.setItem("token", data.data.token);
+        localStorage.setItem("username", values.name);
+        localStorage.setItem("user", JSON.stringify(data.data.user));
+        navigate("/create-profile");
+        resetForm();
+
+      }
+      else {
+        if (typeof data.message === 'string') {
+          toast.error(data.message);
+        } else if (Array.isArray(data.message) && data.message[0]?.message) {
+          toast.error(data.message[0].message);
+        } else {
+          toast.error("Something went wrong");
+        }
+        // navigate("/create-profile");
+      }
+
+    } catch (error) {
+      console.log('Error occurred during signup.');
+    }
+    finally {
+      setLoading(false);
+    }
+
+
   };
 
   return (
@@ -37,6 +73,7 @@ const SignupPage = () => {
         p: 2,
       }}
     >
+      <ToastContainer />
       <Container maxWidth="sm">
         <Paper
           elevation={6}
@@ -49,13 +86,13 @@ const SignupPage = () => {
           <Typography variant="h4" align="center" gutterBottom>
             Create Account
           </Typography>
-           <Box textAlign="center" mb={2}>
-                      <img
-                        src="https://lh6.ggpht.com/aiY9J8YK8Lzr7hMC7nZWlZGiBn8TF_PY7NVNy5U1i5g4zG8yEPzEZTJK2WwbWJUogg"
-                        alt="Logo"
-                        width="80"
-                      />
-                    </Box>
+          <Box textAlign="center" mb={2}>
+            <img
+              src="https://lh6.ggpht.com/aiY9J8YK8Lzr7hMC7nZWlZGiBn8TF_PY7NVNy5U1i5g4zG8yEPzEZTJK2WwbWJUogg"
+              alt="Logo"
+              width="80"
+            />
+          </Box>
           <Formik
             initialValues={{ name: '', email: '', password: '' }}
             validationSchema={validationSchema}
@@ -101,8 +138,15 @@ const SignupPage = () => {
                     helperText={touched.password && errors.password}
                   />
                 </Box>
-                <Button variant="contained" color="primary" fullWidth type="submit">
-                  Sign Up
+                <Button
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  type="submit"
+                  disabled={loading}
+                  startIcon={loading && <CircularProgress size={20} color="inherit" />}
+                >
+                  {loading ? 'Signing Up...' : 'Sign Up'}
                 </Button>
               </Form>
             )}

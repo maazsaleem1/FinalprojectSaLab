@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -10,11 +10,21 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
+import ApiServices from '../services/ApiServices.jsx';
+import { ToastContainer, toast } from "react-toastify";
+import CircularProgress from '@mui/material/CircularProgress';
+import { useNavigate } from "react-router-dom";
+
+
 
 const backgroundImage =
   "https://t4.ftcdn.net/jpg/04/72/60/39/360_F_472603936_gtZ5ULKjzrVqN5nvVl9tiFJtak2ikbnb.jpg";
 
 const CreateProfilePage = () => {
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+
   const [profile, setProfile] = useState({
     fullName: "",
     gender: "",
@@ -23,6 +33,16 @@ const CreateProfilePage = () => {
     image: null,
     imagePreview: null,
   });
+
+  useEffect(() => {
+    const savedName = localStorage.getItem("username");
+    if (savedName) {
+      setProfile((prev) => ({
+        ...prev,
+        fullName: savedName,
+      }));
+    }
+  }, []);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -40,11 +60,33 @@ const CreateProfilePage = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Profile Submitted:", profile);
-    // Send to backend or store
+    setLoading(true);
+
+    const response = await ApiServices.createProfile(profile);
+    console.log(response.status == 200)
+
+    if (response.status == 200) {
+      toast.success("Profile created successfully!");
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+      setProfile({
+        fullName: "",
+        gender: "",
+        contact: "",
+        address: "",
+        image: null,
+        imagePreview: null,
+      });
+      navigate("/home");
+    } else {
+      toast.error(response.message || "Failed to create profile.");
+    }
+
+    setLoading(false);
   };
+
 
   return (
     <Box
@@ -63,6 +105,7 @@ const CreateProfilePage = () => {
         p: 2,
       }}
     >
+      <ToastContainer />
       <Paper
         elevation={6}
         sx={{
@@ -85,37 +128,7 @@ const CreateProfilePage = () => {
 
         <Box component="form" onSubmit={handleSubmit} mt={3}>
           {/* Avatar Upload */}
-          <Box textAlign="center" mb={4}>
-            <input
-              accept="image/*"
-              id="upload-photo"
-              type="file"
-              style={{ display: "none" }}
-              onChange={handleImageChange}
-            />
-            <label htmlFor="upload-photo">
-              <Avatar
-                src={profile.imagePreview}
-                sx={{
-                  width: isMobile ? 80 : 120,
-                  height: isMobile ? 80 : 120,
-                  margin: "auto",
-                  cursor: "pointer",
-                  boxShadow: 3,
-                }}
-              >
-                {profile.fullName ? profile.fullName[0] : "?"}
-              </Avatar>
-              <Typography
-                variant="caption"
-                display="block"
-                mt={1}
-                color="primary"
-              >
-                Click to upload photo
-              </Typography>
-            </label>
-          </Box>
+
 
           {/* Form Fields - All in One Column */}
           <Box mb={3}>
@@ -176,15 +189,12 @@ const CreateProfilePage = () => {
             color="primary"
             fullWidth
             type="submit"
-            sx={{
-              paddingY: 1.4,
-              fontWeight: "bold",
-              textTransform: "none",
-              fontSize: "1rem",
-            }}
+            disabled={loading}
+            startIcon={loading && <CircularProgress size={20} color="inherit" />}
           >
-            Save Profile
+            {loading ? 'creating profile...' : ' Save Profile'}
           </Button>
+
         </Box>
       </Paper>
     </Box>

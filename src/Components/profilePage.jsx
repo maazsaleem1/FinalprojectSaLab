@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -7,11 +7,15 @@ import {
   Divider,
   Button,
 } from '@mui/material';
+import ApiServices from '../services/ApiServices.jsx';
 
 const ProfilePage = () => {
+
+  const [loading, setLoading] = useState(false);
+  const [userData, setuserData] = useState(null);
   // Sample user data (replace with actual user state or props)
   const user = {
-    name: 'John Doe',
+    fullName: 'John Doe',
     email: 'john.doe@example.com',
     username: 'johndoe123',
     gender: 'Male',
@@ -19,9 +23,21 @@ const ProfilePage = () => {
     profilePicture: 'https://mui.com/static/images/avatar/1.jpg',
   };
 
+  useEffect(() => {
+    // setuserData(user)
+    getUserProfile()
+
+  }, [])
+
+  const getUserProfile = async () => {
+    var res = await ApiServices.getProfile();
+    console.log(res);
+    setuserData(res.data);
+  }
+
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5, px: 2 }}>
-      <Paper
+      {userData === null ? <></> : <Paper
         elevation={4}
         sx={{
           p: 4,
@@ -32,16 +48,12 @@ const ProfilePage = () => {
         }}
       >
         <Box display="flex" flexDirection="column" alignItems="center" mb={3}>
-          <Avatar
-            alt={user.name}
-            src={user.profilePicture}
-            sx={{ width: 100, height: 100, mb: 2 }}
-          />
+
           <Typography variant="h5" fontWeight="bold">
-            {user.name}
+            {userData.fullName}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            @{user.username}
+            @{userData.email}
           </Typography>
         </Box>
 
@@ -50,9 +62,10 @@ const ProfilePage = () => {
         {/* User Info Box */}
         <Box display="flex" flexDirection="column" gap={2}>
           {[
-            { label: 'Email', value: user.email },
-            { label: 'Gender', value: user.gender },
-            { label: 'Address', value: user.address },
+            { label: 'Email', value: userData.email },
+            { label: 'Gender', value: userData.gender },
+            { label: 'Contact', value: userData.contact },
+            { label: 'Address', value: userData.address },
           ].map((item, index) => (
             <Box
               key={index}
@@ -71,12 +84,13 @@ const ProfilePage = () => {
           ))}
         </Box>
 
-        <Box mt={4} textAlign="center">
+        {/* <Box mt={4} textAlign="center">
           <Button variant="contained" color="primary">
             Edit Profile
           </Button>
-        </Box>
-      </Paper>
+        </Box> */}
+      </Paper>}
+
     </Box>
   );
 };
