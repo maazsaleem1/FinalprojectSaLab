@@ -36,10 +36,10 @@ const LoginPage = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      navigate("/home");
+    // if (token) {
+    //   navigate("/home");
 
-    }
+    // }
   })
 
 
@@ -186,13 +186,13 @@ const LoginPage = () => {
                 </Link>
               </Typography>
             </Grid>
-            <Grid item>
+            {/* <Grid item>
               <Typography variant="body2">
                 <Link to="/forgot-password" style={{ color: "#1976d2" }}>
                   Forgot password?
                 </Link>
               </Typography>
-            </Grid>
+            </Grid> */}
           </Grid>
         </Paper>
       </Container>

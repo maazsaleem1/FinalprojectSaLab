@@ -4,7 +4,7 @@ import axios from 'axios';
 class ApiService {
     constructor() {
         this.api = axios.create({
-            baseURL: 'https://wx47wjlw-8002.inc1.devtunnels.ms/api/v1',
+            baseURL: ' http://localhost:8002/api/v1',
             headers: {
                 'Content-Type': 'application/json',
                 'auth-token': 'ab6410c710c7ce43c36e37084a4b5205b0e1608477336023a8520c9f104398f9',
